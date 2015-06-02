@@ -38,7 +38,9 @@ $app->get(
         echo "mamsam";
     }
 );
-
+/*
+* logea a un usuario en el sistema.
+*/
 // POST route
 $app->post(
     '/login',
@@ -86,7 +88,11 @@ $app->post(
 
 );
 
-
+/*
+* Devuelve la recomendacion para un usuario.
+* @id el identificador del usuario correspondiente.
+* @return un JSONObject con la lista de restaurantes recomendados
+*/
 $app->get('/recommendations/:id',function($id)
 {   
     //$id=$app->request->get('id');  
@@ -97,7 +103,12 @@ $app->get('/recommendations/:id',function($id)
     echo_response(200,$response);
 }   
     );
-
+/*
+* busca los detalles de un restaurante dado.
+* @param idItem el identificador del restaurante.
+* @param idUser el identificador del usuario.
+* @return un JSONOBject con la informacion del restaurante.
+*/
 $app->post('/details/',function() use($app)
     {
         $response=array();
@@ -108,7 +119,11 @@ $app->post('/details/',function() use($app)
         $response=$db->getItemById($idItem,$idUser);//<-_---------------------
         echo_response(200,$response);
     });
-
+/*
+* buscar los restuarantes segun la cadena de texto dada,ç
+* @Param restaurant la cadena de texto a buscar
+* @return el codigo de la operacion, y un JSONObject con todos los items encontrados
+*/
 $app->post('/search/',function() use($app)
     {
         $response=array();
@@ -118,6 +133,11 @@ $app->post('/search/',function() use($app)
         $response["restaurants"]=$db->getItemByName($restaurant);
         echo_response(200,$response);
     });
+
+/*
+* punta o modifica un restaurante.
+* @return el codigo de estado de la peticion
+*/
 $app->post('/rating/',function() use($app)
 {
     $response=array();
