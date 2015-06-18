@@ -163,13 +163,80 @@ $app->post('/addGroup',function() use($app)
     
     $response=array();
     $db= new DbHandler();
-    $id_admin=$app->request->post("idadmin");
-    $id_group=$app->request->post("idgroup");
-   
+    $id_admin=$app->request->post("adminId");
+    $id_group=$app->request->post("groupId");   
     $aux=$db->createGroup($id_admin,$id_group);
-    $response["message"]=$aux["message"];
-    echo_response($aux["status_code"],$respone);
 
+    $response["message"]=$aux["message"];
+    
+    echo_response($aux["status_code"],$response);
+
+});
+/*
+* Añade a un usuario a la lista de pendientes de un grupo
+* @param groupId identificador de grupo al que se desea pertenecer
+*
+*/
+$app->get('/pending/:groupdId',function($groupId)
+{
+    
+    $db=new DbHandler();
+    $response=$db->list_temp($groupId);
+    echo_response($response["status_code"],$response["users"]);
+});
+/*
+* Acepta un usuario en la lista de pendientes, en el grupo.
+* @param groupId identificador del grupo
+* @para userId identificador del usuario
+*/
+$app->post("/accept",function () use($app)
+{
+    
+    $groupId=$app->request->post("groupId");
+    $userId=$app->request->post("userId");
+    $db=new DbHandler();
+    $response=$db->insertIntoGroup($userId,$groupId);
+    echo_response($response["status_code"],$response);
+});
+/*
+* Da de baja un usuario.
+* @param groupId identificador del grupo
+* @param userId identificador del usuario.
+*/
+$app->post("/deny",function() use($app)
+{
+    $groupId=$app->request->post("groupId");
+    $userId=$app->request->post("userId");
+    $db=new DbHandler();
+    $response=$db->deleteFromGroup($userId,$groupId);
+    echo_response($response["status_code"],$response);
+});
+/*
+*   Obtiene los miembros pertenecientes al grupo
+*   @param groupId identificador del grupo
+*/
+$app->get("/:groupId/members", function($groupId)
+{
+    $db=new DbHandler();
+    $response=$db->list_members($groupId);
+    echo_response($response["status_code"],$response["members"]);
+});
+
+$app->post("/searchGroup",function()use($app)
+{
+    $text=$app->request->post("textGroup");
+    $db=new DbHandler();
+
+    $response=$db->searchGroup($text);
+    echo_response($response["status_code"],$response["groups"]);
+});
+$app->post("/join",function()use($app)
+{
+    $groupId=$app->request->post("groupId");
+    $userId=$app->request->post("userId");
+    $db=new DbHandler();
+    $response=$db->insertIntoTemp($userId,$groupId);
+    echo_response($response["status_code"],$response);
 });
 function echo_response($status_code,$response)
 {

@@ -412,18 +412,200 @@ class DbHandler
         }
         else
         {
-            $stmt->close();
+            
             $aux=array();
             $aux["status_code"]= 500;
-            $aux["message"]="Este grupo ya existe";
+            $aux["message"]=$stmt->error;
+            $stmt->close();
         }
         return $aux;
+    }
+    function list_temp($groupId)
+    {
+        $stmt=$this->conn->prepare(
+            "SELECT u.username,u.id from reja1526.jos1524_users u where u.id in (
+                SELECT t.id_user from sad_reja.temporal t where t.id_grupo=?)");
+        $stmt->bind_param('s',$groupId);
+        $res=$stmt->execute();
+        if($res)
+        {
+            $aux=array();
+            $items=array();
+            $aux["status_code"]=200;
+            $stmt->bind_result($username,$userId);
+            while($stmt->fetch())
+            {
+                $aux2=array();
+                $aux2["id"]=$userId;
+                $aux2["username"]=$username;
+                array_push($items, $aux2);
+            }
+           $aux["users"]=$items;
+        }
+        else
+        {
+            $aux=array();
+            $aux["status_code"]=500;
+            $aux["message"]="el grupo no existe";
+        }
+        $stmt->close();
+        return $aux;
+
 
     }
+    
+    function insertIntoGroup($userId,$groupId)
+    {
+        $stmt=$this->conn->prepare(
+            "INSERT INTO sad_reja.miembros 
+            SELECT t.id_user,t.id_grupo FROM sad_reja.temporal t WHERE t.id_user=? AND t.id_grupo=? ");
+        $stmt->bind_param("is",$userId,$groupId);
+        $res=$stmt->execute();
+        if($res)
+        {
+            $stmt->close();
+            $response=array();
+            $response["status_code"]=200;
+            $response["message"]="Dado de alta correctamente";
+            $stmt=$this->conn->prepare(
+                "DELETE FROM sad_reja.temporal WHERE id_user= ? AND id_grupo= ?");
+            $stmt->bind_param("is",$userId,$groupId);
+            $stmt->execute();
+            $stmt->close();
+        }
+        else
+        {
+            $stmt->close();
+            $response=array();
+            $response["status_code"]=500;
+            $response["message"]="El usuario no existe";
+        }
+        
+        return $response;
 
+    }
+    function deleteFromGroup($userId,$groupId)
+    {
+        $stmt=$this->conn->prepare(
+            "DELETE FROM sad_reja.temporal  WHERE id_user=? AND id_grupo=? ");
+        $stmt->bind_param("is",$userId,$groupId);
+        $res=$stmt->execute();
+        $stmt->close();
 
+        $stmt=$this->conn->prepare(
+            "DELETE FROM sad_reja.miembros WHERE id_user=? AND id_grupo=? ");
+        $stmt->bind_param("is",$userId,$groupId);
+        $res2=$stmt->execute();
+        $stmt->close();
+        if($res || $res2)
+        {
+            $response=array();
+            $response["status_code"]=200;
+            $response["message"]="Eliminado correctamente";
+        }
+        else
+        {
+            $response=array();
+            $response["status_code"]=500;
+            $response["message"]="El usuario no existe";
+        }
+        
+        return $response;
 
+    }
+    function list_members($groupId)
+    {
+        $stmt=$this->conn->prepare(
+            "SELECT u.username,u.id from reja1526.jos1524_users u where u.id in (
+                SELECT id_user from sad_reja.miembros where id_grupo=?)");
 
+        $stmt->bind_param("s",$groupId);
+
+        $res=$stmt->execute();
+
+        if($res)
+        {
+
+            $aux=array();
+            $items=array();
+            $response["status_code"]=200;
+            $stmt->bind_result($username,$userId);
+            while($stmt->fetch())
+            {
+                $aux2=array();
+                $aux2["id"]=$userId;
+                $aux2["username"]=$username;
+                array_push($items, $aux2);
+            }
+           $response["members"]=$items;
+        }
+        else
+        {
+
+        }
+        return $response;
+    }
+
+    function searchGroup($text)
+    {
+        $param="%".$text."%";
+        $stmt=$this->conn->prepare(
+            "SELECT id FROM sad_reja.grupos WHERE id LIKE ? ORDER BY times DESC");
+
+        $stmt->bind_param("s",$param);
+        $res=$stmt->execute();
+
+        if($res)
+        {
+            $response=array();
+            $items=array();
+            $response["status_code"]=200;
+            $stmt->bind_result($groupId);
+            while($stmt->fetch())
+            {
+                $aux2=array();
+                
+                $aux2["groupId"]=$groupId;
+                array_push($items, $aux2);
+            }
+           $response["groups"]=$items;
+           $stmt->close();
+        }
+        else
+        {
+             $response["status_code"]=500;
+             $response["message"]=$stmt->errno.": ".$stmt->error;
+             $stmt->close();
+        }
+
+        return $response;
+    }
+
+    function insertIntoTemp($userId,$groupId)
+    {
+        $stmt=$this->conn->prepare(
+            "INSERT INTO sad_reja.temporal (id_user,id_grupo) VALUES (?,?)");
+        $stmt->bind_param("is",$userId,$groupId);
+        $res=$stmt->execute();
+        if($res)
+        {
+            
+            $response=array();
+            $response["status_code"]=200;
+            $response["message"]="Dado de alta correctamente";
+            $stmt->close();
+        }
+        else
+        {
+            
+            $response=array();
+            $response["status_code"]=500;
+            $response["message"]=$stmt->errno.": ".$stmt->error;
+            $stmt->close();
+        }
+        
+        return $response;
+    }
 
 }
 ?>
