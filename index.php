@@ -149,9 +149,27 @@ $app->post('/rating/',function() use($app)
     /*$response["Item"]=$itemID;
     $response["user"]=$userID;
     $response["rating"]=$rating;*/
-    $code=$db->setRating($userID,$itemID,$rating);
+    $code=$db->setRating($userID,$itemID,$rating);      
     echo_response($code,$response);
     
+});
+/*
+* Crea un grupo,
+* @param id_admin identificador de usuario del administrador
+* @param id_group idfentificador del grupo.
+*/
+$app->post('/addGroup',function() use($app)
+{
+    
+    $response=array();
+    $db= new DbHandler();
+    $id_admin=$app->request->post("idadmin");
+    $id_group=$app->request->post("idgroup");
+   
+    $aux=$db->createGroup($id_admin,$id_group);
+    $response["message"]=$aux["message"];
+    echo_response($aux["status_code"],$respone);
+
 });
 function echo_response($status_code,$response)
 {

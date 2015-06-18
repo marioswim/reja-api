@@ -22,6 +22,7 @@ class DbHandler
         date_default_timezone_set('Europe/Madrid');
         $this->path="../recommenderLib/"; 
     }
+    
     private function salt()
     {
         $length=15;
@@ -392,8 +393,33 @@ class DbHandler
             return 304;
         }
     }
+    function createGroup($adminID,$groupID)
+    {
+        //echo $adminID."<br>".$groupID;
 
+        $stmt=$this->conn->prepare(
+            "INSERT INTO sad_reja.grupos (admin,id) values (?,?)");
+        $stmt->bind_param('is',$adminID,$groupID);
+        $res=$stmt->execute();
 
+        if($res)
+        {
+            $stmt->close();
+            $aux=array();
+            $aux["status_code"]=201;
+            $aux["message"]="Creado Correctamente";
+
+        }
+        else
+        {
+            $stmt->close();
+            $aux=array();
+            $aux["status_code"]= 500;
+            $aux["message"]="Este grupo ya existe";
+        }
+        return $aux;
+
+    }
 
 
 
