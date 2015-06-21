@@ -404,11 +404,12 @@ class DbHandler
 
         if($res)
         {
-            $stmt->close();
+            
             $aux=array();
             $aux["status_code"]=201;
             $aux["message"]="Creado Correctamente";
-
+            $aux["code_error"]=$stmt->errno;
+            $stmt->close();
         }
         else
         {
@@ -416,6 +417,7 @@ class DbHandler
             $aux=array();
             $aux["status_code"]= 500;
             $aux["message"]=$stmt->error;
+            $aux["code_error"]=$stmt->errno;
             $stmt->close();
         }
         return $aux;
@@ -592,6 +594,7 @@ class DbHandler
             
             $response=array();
             $response["status_code"]=200;
+            $response["code_error"]=$stmt->errno;
             $response["message"]="Dado de alta correctamente";
             $stmt->close();
         }
@@ -600,7 +603,8 @@ class DbHandler
             
             $response=array();
             $response["status_code"]=500;
-            $response["message"]=$stmt->errno.": ".$stmt->error;
+            $response["code_error"]=$stmt->errno;
+            $response["message"]=$stmt->error;
             $stmt->close();
         }
         

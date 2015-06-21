@@ -165,11 +165,11 @@ $app->post('/addGroup',function() use($app)
     $db= new DbHandler();
     $id_admin=$app->request->post("adminId");
     $id_group=$app->request->post("groupId");   
-    $aux=$db->createGroup($id_admin,$id_group);
+    $response=$db->createGroup($id_admin,$id_group);
 
-    $response["message"]=$aux["message"];
     
-    echo_response($aux["status_code"],$response);
+    
+    echo_response($response["status_code"],$response);
 
 });
 /*
@@ -182,7 +182,7 @@ $app->get('/pending/:groupdId',function($groupId)
     
     $db=new DbHandler();
     $response=$db->list_temp($groupId);
-    echo_response($response["status_code"],$response["users"]);
+    echo_response($response["status_code"],$response);
 });
 /*
 * Acepta un usuario en la lista de pendientes, en el grupo.
@@ -219,7 +219,7 @@ $app->get("/:groupId/members", function($groupId)
 {
     $db=new DbHandler();
     $response=$db->list_members($groupId);
-    echo_response($response["status_code"],$response["members"]);
+    echo_response($response["status_code"],$response);
 });
 
 $app->post("/searchGroup",function()use($app)
@@ -228,7 +228,7 @@ $app->post("/searchGroup",function()use($app)
     $db=new DbHandler();
 
     $response=$db->searchGroup($text);
-    echo_response($response["status_code"],$response["groups"]);
+    echo_response($response["status_code"],$response);
 });
 $app->post("/join",function()use($app)
 {
