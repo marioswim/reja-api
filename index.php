@@ -9,6 +9,7 @@
  */
 require 'Slim/Slim.php';
 require_once './include/DbHandler.php';
+require_once './include/utils.php';
 \Slim\Slim::registerAutoloader();
 
 /**
@@ -176,14 +177,14 @@ $app->post('/addGroup',function() use($app)
 * Añade a un usuario a la lista de pendientes de un grupo
 * @param groupId identificador de grupo al que se desea pertenecer
 *
-*/
+
 $app->get('/pending/:groupdId',function($groupId)
 {
     
     $db=new DbHandler();
     $response=$db->list_temp($groupId);
     echo_response($response["status_code"],$response);
-});
+});*/
 /*
 * Acepta un usuario en la lista de pendientes, en el grupo.
 * @param groupId identificador del grupo
@@ -215,10 +216,28 @@ $app->post("/deny",function() use($app)
 *   Obtiene los miembros pertenecientes al grupo
 *   @param groupId identificador del grupo
 */
-$app->get("/:groupId/members", function($groupId)
+$app->post("/:groupId/members", function($groupId) use($app)
 {
     $db=new DbHandler();
-    $response=$db->list_members($groupId);
+    $response=array();
+    $userId=$app->request->post("userId");
+    $adminId=$db->getAdminGroup($groupId);
+    if($userId==$adminId)
+    {
+        $response1=$db->list_members($groupId);
+        $response2=$db->list_temp($groupId);
+        if($response1["status_code"]==$response2["status_code"])
+            $response["status_code"]=$response1["status_code"];
+        else
+            $response["status_code"]=500;
+        $response["miembros"]=$response1;
+        $response["pendientes"]=$response2;
+    }
+    else
+    {
+        $response["status_code"]=500;
+        $response["message"]="No eres el administrador de este grupo";
+    }
     echo_response($response["status_code"],$response);
 });
 
@@ -238,6 +257,27 @@ $app->post("/join",function()use($app)
     $response=$db->insertIntoTemp($userId,$groupId);
     echo_response($response["status_code"],$response);
 });
+
+/*
+$app->post("/context",function()use($app)
+{
+    $userId = urlencode($app->request->post("idUser"));
+    $db=new DbHandler();
+    $recommendation=$db->getRecommendations($userId);
+    $aux=array();
+    foreach ($recommendation as $item) 
+    {
+        $aux2=$item;
+        $context=getItemContext($item["address"]);
+        $aux2["context"]=$context;
+        array_push($aux, $aux2);
+    }
+    $response["recommendation"]=$aux;
+
+    echo_response(200,$response);
+
+});*/
+
 function echo_response($status_code,$response)
 {
      $app=\Slim\Slim::getInstance();

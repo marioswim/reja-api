@@ -3,9 +3,10 @@
 /**
  * Class to handle all db operations
  * This class will have CRUD methods for database tables
- *
+ *  
  * @author Mario Quesada
  */
+
 class DbHandler
 {
  
@@ -185,7 +186,7 @@ class DbHandler
 
         exec("java -jar ".$this->path."recommenderLib.jar -u ".$userId." -configFile ".$this->path."mysqlRecommendationConfiguration.xml");
         $stmt=$this->conn->prepare(
-            "SELECT r.iditem, r.preference, i.nombre, i.direccion
+            "SELECT r.iditem, r.preference, i.nombre, i.direccion,i.Latitude,i.Longitude
             FROM sad_reja.reja_recomendaciones r, reja1526.item_table_full i
             WHERE i.idItem=r.iditem AND idUser=? 
             ORDER BY r.preference DESC ");
@@ -196,7 +197,7 @@ class DbHandler
         $num_rows=$stmt->num_rows;
         if($num_rows>0)
         {
-            $stmt->bind_result($iditem,$preference,$name,$dir);
+            $stmt->bind_result($iditem,$preference,$name,$dir,$lat,$long);
             $tmp=array();
             while($stmt->fetch())
                 {
@@ -204,10 +205,12 @@ class DbHandler
                     $aux["id"]=$iditem;
                     $aux["Name"]=$name;
                     $aux["preference"]=$preference; 
-                    $aux["address"]=$dir;               
+                    $aux["address"]=$dir;      
+                    $aux["latitude"]=$lat;
+                    $aux["longitude"]=$long;         
                     array_push($tmp, $aux);
-                }
-            $stmt->close();
+                
+}            $stmt->close();
             return $tmp;
         }
         else
@@ -215,14 +218,14 @@ class DbHandler
 
             $tmp=array();
             $stmt=$this->conn->prepare(
-                "SELECT np.iditem, np.rating,i.nombre,i.direccion
+                "SELECT np.iditem, np.rating,i.nombre,i.direccion,i.Latitude,i.Longitude
                 FROM sad_reja.reja_no_personalizado np, reja1526.item_table_full i 
                 where i.idItem=np.iditem
                 ORDER BY np.rating DESC ");
 
             if($stmt->execute())
             {    
-                $stmt->bind_result($iditem,$rating,$name,$dir);   
+                $stmt->bind_result($iditem,$rating,$name,$dir,$lat,$long);   
                 while($stmt->fetch())
                 {
                     $aux=array();       
@@ -230,6 +233,8 @@ class DbHandler
                     $aux["Name"]=$name;
                     $aux["preference"]=$rating;  
                     $aux["address"]=$dir;              
+                    $aux["latitude"]=$lat;
+                    $aux["longitude"]=$long;
                     array_push($tmp, $aux);
                 }            
             }
@@ -585,30 +590,69 @@ class DbHandler
 
     function insertIntoTemp($userId,$groupId)
     {
+        $response=array();
+
         $stmt=$this->conn->prepare(
-            "INSERT INTO sad_reja.temporal (id_user,id_grupo) VALUES (?,?)");
+            "SELECT * FROM sad_reja.miembros WHERE id_user=? AND id_grupo = ? ");
         $stmt->bind_param("is",$userId,$groupId);
         $res=$stmt->execute();
-        if($res)
+        $stmt->store_result();
+        $num_rows=$stmt->num_rows;
+        $stmt->close();
+        
+        if($num_rows==0)
         {
+            $stmt=$this->conn->prepare(
+                "INSERT INTO sad_reja.temporal (id_user,id_grupo) VALUES (?,?)");
+            $stmt->bind_param("is",$userId,$groupId);
+            $res=$stmt->execute();
+            if($res)
+            {
+                
+                
+                $response["status_code"]=200;
+                $response["code_error"]=$stmt->errno;
+                $response["message"]="Dado de alta correctamente";
+                $stmt->close();
+            }
+            else
+            {
+                
+                
+                $response["status_code"]=500;
+                $response["code_error"]=$stmt->errno;
+                $response["message"]=$stmt->error;
+                $stmt->close();
+            }
             
-            $response=array();
-            $response["status_code"]=200;
-            $response["code_error"]=$stmt->errno;
-            $response["message"]="Dado de alta correctamente";
-            $stmt->close();
         }
         else
         {
             
-            $response=array();
-            $response["status_code"]=500;
-            $response["code_error"]=$stmt->errno;
-            $response["message"]=$stmt->error;
-            $stmt->close();
+                $response["status_code"]=500;
+                $response["code_error"]=500;
+                $response["message"]="Ya está en el grupo";
         }
-        
         return $response;
+    }
+
+    function getAdminGroup($groupId)
+    {
+        $stmt=$this->conn->prepare(
+            "SELECT admin FROM sad_reja.grupos WHERE id=?");
+
+        $stmt->bind_param("s",$groupId);
+        $res=$stmt->execute();
+        if($res)
+        {
+            $stmt->bind_result($adminId);
+            $stmt->fetch();
+            return $adminId;
+        }
+        else
+        {
+            return null;
+        }
     }
 
 }
