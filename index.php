@@ -9,7 +9,7 @@
  */
 require 'Slim/Slim.php';
 require_once './include/DbHandler.php';
-require_once './include/utils.php';
+
 \Slim\Slim::registerAutoloader();
 
 /**
@@ -83,7 +83,7 @@ $app->post(
                 $status_code=500;
             }
         }
-       
+        $response["status_code"]=$status_code;
         echo_response($status_code,$response);
     }
 
@@ -101,9 +101,8 @@ $app->get('/recommendations/:id',function($id)
     $db=new DbHandler();
     $recommendation=$db->getRecommendations($id);
     $response["recommendation"]=$recommendation;
-    echo_response(200,$response);
-}   
-    );
+    echo_response(200,$response);   
+});
 /*
 * busca los detalles de un restaurante dado.
 * @param idItem el identificador del restaurante.
@@ -111,29 +110,29 @@ $app->get('/recommendations/:id',function($id)
 * @return un JSONOBject con la informacion del restaurante.
 */
 $app->post('/details/',function() use($app)
-    {
-        $response=array();
-        $db=new DbHandler();
-        $idItem=$app->request->post('idItem');
-        $idUser=$app->request->post('idUser');
+{
+    $response=array();
+    $db=new DbHandler();
+    $idItem=$app->request->post('idItem');
+    $idUser=$app->request->post('idUser');
 
-        $response=$db->getItemById($idItem,$idUser);//<-_---------------------
-        echo_response(200,$response);
-    });
+    $response=$db->getItemById($idItem,$idUser);//<-_---------------------
+    echo_response(200,$response);
+});
 /*
 * buscar los restuarantes segun la cadena de texto dada,ç
 * @Param restaurant la cadena de texto a buscar
 * @return el codigo de la operacion, y un JSONObject con todos los items encontrados
 */
 $app->post('/search/',function() use($app)
-    {
-        $response=array();
-        $db=new DbHandler();
-        
-        $restaurant=$app->request->post('restaurant');
-        $response["restaurants"]=$db->getItemByName($restaurant);
-        echo_response(200,$response);
-    });
+{
+    $response=array();
+    $db=new DbHandler();
+    
+    $restaurant=$app->request->post('restaurant');
+    $response["restaurants"]=$db->getItemByName($restaurant);
+    echo_response(200,$response);
+});
 
 /*
 * punta o modifica un restaurante.
@@ -165,8 +164,19 @@ $app->post('/addGroup',function() use($app)
     $response=array();
     $db= new DbHandler();
     $id_admin=$app->request->post("adminId");
-    $id_group=$app->request->post("groupId");   
-    $response=$db->createGroup($id_admin,$id_group);
+    $id_group=$app->request->post("groupId"); 
+    $adminId=$db->getAdminGroup($id_group);  
+    if($id_admin==$adminId)
+    {
+        $response["status_code"]=200;
+        $response["code_error"]=0;
+        $response["message"]="Ya es administrador de este grupo";
+    }
+    else    
+    {
+
+        $response=$db->createGroup($id_admin,$id_group);
+    }
 
     
     
@@ -258,26 +268,99 @@ $app->post("/join",function()use($app)
     echo_response($response["status_code"],$response);
 });
 
-/*
+
 $app->post("/context",function()use($app)
 {
-    $userId = urlencode($app->request->post("idUser"));
+    $params=array();
+    $userId = $app->request->post("idUser");
+    $params["my_lat"] = $app->request->post("my_lat");
+    $params["my_long"] =$app->request->post("my_long");
+    $params["maxDist"] =$app->request->post("maxDist");
     $db=new DbHandler();
     $recommendation=$db->getRecommendations($userId);
-    $aux=array();
-    foreach ($recommendation as $item) 
-    {
-        $aux2=$item;
-        $context=getItemContext($item["address"]);
-        $aux2["context"]=$context;
-        array_push($aux, $aux2);
-    }
-    $response["recommendation"]=$aux;
+    
+    $result=filterBydist($recommendation,$params);
+    $response["recommendation"]=$result;
 
     echo_response(200,$response);
 
-});*/
+});
+$app->post("/groupRecommendation",function()use($app)
+{
+    $params=array();
+    $name = $app->request->post("groupId");
+    $adminId = $app->request->post("adminId");
 
+    $db=new DbHandler();
+
+    $Gid=$db->getGroupGID($name); // obtiene el id numero del grupo
+    $tempGidInRatingTable=$db->addGidInUsers($Gid); // inserta el id numerico del grupo en la tabla user
+    $recommendation=$db->getRatingsUsersGroup($name); // obtiene todos los ratings de los usuarios del grupo
+    $average=average($recommendation); // calcula la media de cada item
+
+    foreach ($average as $iditem => $rating) 
+    {
+        $db->setRating($tempGidInRatingTable,$iditem,$rating);//añade el rating medio de cada item, en el grupo
+    }
+
+    $recommendation=$db->getRecommendations($tempGidInRatingTable); //obtiene la recomendacion del grupo.
+    $db->removeGroupRecomendation($tempGidInRatingTable);//elimina las recomendaciones del grupo
+    $db->removeGroupUser($tempGidInRatingTable);// elimina el id numerico del grupo de la tabla user
+    $response["recommendation"]=$recommendation;
+    
+
+    echo_response(200,$response);
+
+});
+
+function average($items)
+{
+    $average=array();
+    $i=0;
+    foreach ($items as $iduser => $item) 
+    {
+        foreach ($item as $iditem => $rating) 
+        {
+            if(isset($average[$iditem]))
+            {
+                $average[$iditem]+=$rating;
+            }
+            else
+            {
+                $average[$iditem]= $rating;
+            }
+        }
+        $i++;
+    }
+    foreach ($average as $key => $rating) 
+    {
+        $average[$key]=$rating/$i;
+    }
+    
+    return $average;
+}
+function filterByDist($recommendation,$params)
+{
+    $lat1=$params["my_lat"];
+    $lon1=$params["my_long"];
+    $result=array();
+    foreach($recommendation as $item)
+    {   
+
+        $lat2=$item["latitude"];
+        $lon2=$item["longitude"];
+        
+        $radius = 6378.137;
+        $dlon=$params["my_long"]-$item["longitude"];
+        $distancia=acos(sin(deg2rad($params["my_lat"])) * sin(deg2rad($item["latitude"])) +  cos(deg2rad($params["my_lat"])) * cos(deg2rad($item["latitude"])) * cos(deg2rad($dlon)))*$radius; 
+        $aux=$item;
+        if($distancia<=$params["maxDist"])
+        //$aux2=array("distancia" => $distancia, "lat1" => $lat1, "lon1" => $lon1, "lat2" => $lat2,"lon2" => $lon2,);
+                //array_push($aux, $aux2);
+                array_push($result, $item);
+    }
+    return $result;
+}
 function echo_response($status_code,$response)
 {
      $app=\Slim\Slim::getInstance();

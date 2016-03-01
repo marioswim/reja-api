@@ -655,5 +655,123 @@ class DbHandler
         }
     }
 
+    public function getRatingsUsersGroup($name)
+    {
+        $stmt=$this->conn->prepare(
+            "   SELECT  r.iduser,r.iditem,r.rating
+                FROM sad_reja.ratings r
+                WHERE r.iduser in (
+                select m.id_user
+                FROM sad_reja.miembros m
+                where m.id_grupo=?)");
+        $stmt->bind_param("s",$name);
+        $res=$stmt->execute();
+
+
+        if($res)
+        {
+            $stmt->bind_result($iduser,$iditem,$rating);
+            $ratings=array();
+            while($stmt->fetch())
+            {
+                if(isset($ratings[$iduser]))
+                {
+                    $ratings[$iduser][$iditem]=$rating;
+                }
+                else
+                {
+                    $ratings[$iduser]=array();
+                    $ratings[$iduser][$iditem]= $rating;
+                }
+            }
+            $stmt->close();
+            return $ratings;
+        }
+        else
+        {
+            $stmt->close();
+            return null;
+        }
+        
+    }
+    function getGroupGID($name)
+    {
+        $stmt=$this->conn->prepare(
+            "   SELECT Gid
+                FROM sad_reja.grupos
+                where id=?");
+        $stmt->bind_param("s",$name);
+        $res=$stmt->execute();
+        if($res)
+        {
+            $stmt->bind_result($gid);
+            $stmt->fetch();
+            $Gid=$gid;
+            $stmt->close(); 
+            return $Gid;
+        }
+        else
+        {
+            $stmt->close();
+            return null;
+        }
+    }
+    function addGidInUsers($Gid)
+    {   
+        $groupId=900000+$Gid;
+        $stmt=$this->conn->prepare(
+            "   REPLACE INTO sad_reja.users (id_user) values(?)");
+        $stmt->bind_param("i",$groupId);
+        $res=$stmt->execute();
+        if($res)
+        {
+            return $groupId;
+        }
+        else
+        {
+
+            $code=$stmt->errno;
+            $stmt->close();
+            return null;
+        }   
+    }
+    function removeGroupRecomendation($Gid)
+    {
+
+        $groupId=900000+$Gid;
+        $stmt=$this->conn->prepare(
+            "   DELETE FROM sad_reja.ratings where iduser=?");
+        $stmt->bind_param("i",$Gid);
+        $res=$stmt->execute();
+        if($res)
+        {
+    
+            return 200;
+        }
+        else
+        {
+
+            $code=$stmt->errno;
+            
+            return 500;
+        }  
+    }
+    function removeGroupUser($Gid)
+    {
+
+        $stmt2=$this->conn->prepare(
+        "   DELETE FROM sad_reja.users where id_user=?");
+        $stmt2->bind_param("i",$Gid);
+        $res2=$stmt2->execute();
+        if($res2)
+        {
+            return 200;
+        }
+        else
+        {
+            return 500;
+        }
+    }
 }
+
 ?>
