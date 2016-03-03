@@ -312,7 +312,37 @@ $app->post("/groupRecommendation",function()use($app)
     echo_response(200,$response);
 
 });
+$app->post("/contextGroup",function()use($app)
+{
+    $params=array();
+    $userId = $app->request->post("idUser");
+    $params["my_lat"] = $app->request->post("my_lat");
+    $params["my_long"] =$app->request->post("my_long");
+    $params["maxDist"] =$app->request->post("maxDist");
+    $name = $app->request->post("groupId");
+    $adminId = $app->request->post("adminId");
+    $db=new DbHandler();
 
+    $Gid=$db->getGroupGID($name); // obtiene el id numero del grupo
+    $tempGidInRatingTable=$db->addGidInUsers($Gid); // inserta el id numerico del grupo en la tabla user
+    $recommendation=$db->getRatingsUsersGroup($name); // obtiene todos los ratings de los usuarios del grupo
+    $average=average($recommendation); // calcula la media de cada item
+
+    foreach ($average as $iditem => $rating) 
+    {
+        $db->setRating($tempGidInRatingTable,$iditem,$rating);//añade el rating medio de cada item, en el grupo
+    }
+
+    $recommendation=$db->getRecommendations($tempGidInRatingTable); //obtiene la recomendacion del grupo.
+    $db->removeGroupRecomendation($tempGidInRatingTable);//elimina las recomendaciones del grupo
+    $db->removeGroupUser($tempGidInRatingTable);// elimina el id numerico del grupo de la tabla user
+    
+    $result=filterBydist($recommendation,$params);
+    $response["recommendation"]=$result;
+
+    echo_response(200,$response);
+
+});
 function average($items)
 {
     $average=array();
