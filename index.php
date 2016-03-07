@@ -287,26 +287,26 @@ $app->post("/context",function()use($app)
 });
 $app->post("/groupRecommendation",function()use($app)
 {
-    $params=array();
-    $name = $app->request->post("groupId");
-    $adminId = $app->request->post("adminId");
+    $params     =   array();
+    $db         =   new DbHandler();
+    $name       =   $app->request->post("groupId");
+    $adminId    =   $app->request->post("adminId");
 
-    $db=new DbHandler();
 
-    $Gid=$db->getGroupGID($name); // obtiene el id numero del grupo
-    $tempGidInRatingTable=$db->addGidInUsers($Gid); // inserta el id numerico del grupo en la tabla user
-    $recommendation=$db->getRatingsUsersGroup($name); // obtiene todos los ratings de los usuarios del grupo
-    $average=average($recommendation); // calcula la media de cada item
+    $Gid                    =   $db->getGroupGID($name); // obtiene el id numero del grupo
+    $tempGidInRatingTable   =   $db->addGidInUsers($Gid); // inserta el id numerico del grupo en la tabla user
+    $recommendation         =   $db->getRatingsUsersGroup($name); // obtiene todos los ratings de los usuarios del grupo
+    $average                =   average($recommendation); // calcula la media de cada item
 
     foreach ($average as $iditem => $rating) 
     {
         $db->setRating($tempGidInRatingTable,$iditem,$rating);//añade el rating medio de cada item, en el grupo
     }
 
-    $recommendation=$db->getRecommendations($tempGidInRatingTable); //obtiene la recomendacion del grupo.
+    $recommendation             =   $db->getRecommendations($tempGidInRatingTable); //obtiene la recomendacion del grupo.
     $db->removeGroupRecomendation($tempGidInRatingTable);//elimina las recomendaciones del grupo
     $db->removeGroupUser($tempGidInRatingTable);// elimina el id numerico del grupo de la tabla user
-    $response["recommendation"]=$recommendation;
+    $response["recommendation"] =   $recommendation;
     
 
     echo_response(200,$response);
@@ -314,35 +314,50 @@ $app->post("/groupRecommendation",function()use($app)
 });
 $app->post("/contextGroup",function()use($app)
 {
-    $params=array();
-    $userId = $app->request->post("idUser");
-    $params["my_lat"] = $app->request->post("my_lat");
-    $params["my_long"] =$app->request->post("my_long");
-    $params["maxDist"] =$app->request->post("maxDist");
-    $name = $app->request->post("groupId");
-    $adminId = $app->request->post("adminId");
-    $db=new DbHandler();
+    $params            =    array();
+    $db                =    new DbHandler();
+    $userId            =    $app->request->post("idUser");
+    $params["my_lat"]  =    $app->request->post("my_lat");
+    $params["my_long"] =    $app->request->post("my_long");
+    $params["maxDist"] =    $app->request->post("maxDist");
+    $name              =    $app->request->post("groupId");
+    $adminId           =    $app->request->post("adminId");
 
-    $Gid=$db->getGroupGID($name); // obtiene el id numero del grupo
-    $tempGidInRatingTable=$db->addGidInUsers($Gid); // inserta el id numerico del grupo en la tabla user
-    $recommendation=$db->getRatingsUsersGroup($name); // obtiene todos los ratings de los usuarios del grupo
-    $average=average($recommendation); // calcula la media de cada item
+    $Gid                    =    $db->getGroupGID($name); // obtiene el id numero del grupo
+    $tempGidInRatingTable   =   $db->addGidInUsers($Gid); // inserta el id numerico del grupo en la tabla user
+    $recommendation         =   $db->getRatingsUsersGroup($name); // obtiene todos los ratings de los usuarios del grupo
+    $average                =   average($recommendation); // calcula la media de cada item
 
     foreach ($average as $iditem => $rating) 
     {
         $db->setRating($tempGidInRatingTable,$iditem,$rating);//añade el rating medio de cada item, en el grupo
     }
 
-    $recommendation=$db->getRecommendations($tempGidInRatingTable); //obtiene la recomendacion del grupo.
+    $recommendation             =   $db->getRecommendations($tempGidInRatingTable); //obtiene la recomendacion del grupo.
     $db->removeGroupRecomendation($tempGidInRatingTable);//elimina las recomendaciones del grupo
     $db->removeGroupUser($tempGidInRatingTable);// elimina el id numerico del grupo de la tabla user
     
-    $result=filterBydist($recommendation,$params);
-    $response["recommendation"]=$result;
+    $result                     =   filterBydist($recommendation,$params);
+    $response["recommendation"] =   $result;
 
     echo_response(200,$response);
 
 });
+
+$app->post("/ratings",function()use($app)
+{
+    $params             =   array();
+    $db                 =   new DbHandler();
+    $params["iduser"]   =   $app->request->post("iduser");
+
+
+    $response["ratings"]=   $db->getUserRatings($params);
+
+
+    echo_response(200,$response);
+
+});
+
 function average($items)
 {
     $average=array();

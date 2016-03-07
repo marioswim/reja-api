@@ -772,6 +772,40 @@ class DbHandler
             return 500;
         }
     }
-}
+    function getUserRatings($params)
+    {
+        $stmt   =   $this->conn->prepare(
+        "   SELECT  i.idItem, i.nombre, r.rating
+            FROM    reja1526.item_table_full i, sad_reja.ratings r
+            Where   i.idItem=r.iditem AND r.iduser = ?
+            ORDER BY r.rating DESC
+            ");
 
+        $stmt   ->  bind_param("i",$params["iduser"]);
+
+        $res    =   $stmt->execute();
+
+
+        if($res)
+        {
+            $stmt   ->  bind_result($idItem,$name,$rating);
+            $ratings=array();
+            while($stmt -> fetch())
+            {
+                $aux    =   array();
+                $aux["id"]      =   $idItem;
+                $aux["name"]  =   $name;
+                $aux["rating"]  =   $rating;
+                array_push($ratings, $aux);
+            }
+            return $ratings;
+        }
+        else
+        {
+            return null;
+        }
+
+    }
+}
+    
 ?>
