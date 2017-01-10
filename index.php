@@ -51,12 +51,13 @@ $app->post(
         $status_code=500;
         $db= new DbHandler();
         $email = $app->request->post('email');  
-
+        $aux=explode("@", $email);
         
         $userId=$db->getUserByEmail($email);
         if($userId!=NUll)
         {
             $response["userId"]=$userId;
+            $response["username"]=$aux[0];
             $response["message"]="User login";
             $status_code=200;
         }
@@ -68,6 +69,7 @@ $app->post(
             if($res==USER_CREATED_SUCCESSFULLY)
             {
                 $response["userId"]=$db->getUserByEmail($email);
+                $response["username"]=$aux[0];
                 $response["message"]="Create successfully";
                 $status_code=201;
             }
@@ -94,11 +96,12 @@ $app->post(
 * @id el identificador del usuario correspondiente.
 * @return un JSONObject con la lista de restaurantes recomendados
 */
-$app->get('/recommendations/:id',function($id)
+$app->post('/recommendation',function() use ($app)
 {   
     //$id=$app->request->get('id');  
     $response=array();
     $db=new DbHandler();
+    $id= $app->request->post("idUser");
     $recommendation=$db->getRecommendations($id);
     $response["recommendation"]=$recommendation;
     echo_response(200,$response);   
@@ -149,8 +152,8 @@ $app->post('/rating/',function() use($app)
     /*$response["Item"]=$itemID;
     $response["user"]=$userID;
     $response["rating"]=$rating;*/
-    $code=$db->setRating($userID,$itemID,$rating);      
-    echo_response($code,$response);
+    $response["code"]=$db->setRating($userID,$itemID,$rating);      
+    echo_response($response["code"],$response);
     
 });
 /*
@@ -357,7 +360,18 @@ $app->post("/ratings",function()use($app)
     echo_response(200,$response);
 
 });
+$app->post("/removeRating",function() use ($app)
+{
+    $params             =   array();
+    $db                 =   new DbHandler();
+    $params["idUser"]   =   $app->request->post("idUser");
+    $params["idItem"]   =   $app->request->post("idItem");
+    $response["code"]  =   "asdad";
 
+    $response["code"]   =   $db->deleteRating($params);
+
+    echo_response($response["code"],$response);
+});
 function average($items)
 {
     $average=array();

@@ -792,9 +792,9 @@ class DbHandler
             $ratings=array();
             while($stmt -> fetch())
             {
-                $aux    =   array();
+                $aux            =   array();
                 $aux["id"]      =   $idItem;
-                $aux["name"]  =   $name;
+                $aux["name"]    =   $name;
                 $aux["rating"]  =   $rating;
                 array_push($ratings, $aux);
             }
@@ -805,6 +805,26 @@ class DbHandler
             return null;
         }
 
+    }
+    function deleteRating($params)
+    {
+          
+        $stmt=$this->conn->prepare(
+            "DELETE FROM sad_reja.ratings WHERE iduser=? and iditem=?");
+        //return array("iduser" => $params["idUser"], "iditem"=> $params["idItem"]);
+        $stmt->bind_param('ii',$params["idUser"],$params["idItem"]);
+        $res=$stmt->execute();
+        if($res)
+        {
+            $stmt->close();
+            
+            return 200;
+        }
+        else
+        {
+            $stmt->close();
+            return 304;
+        }
     }
 }
     
